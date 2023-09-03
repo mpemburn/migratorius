@@ -20,17 +20,20 @@ div.content {
 #subsites_from {
     min-width: 100%;
 }
+#loading {
+    margin-left: 5px;
+}
 
 option {
     color: #000;
 }
 
 input[type=search] {
-    min-height: 5vh;
+    min-height: 3vh;
     margin: 0 3px;
     outline-offset: 0;
 }
 select {
-    min-height: 5vh;
+    min-height: 2.9vh;
     margin-left: 3px;
 }

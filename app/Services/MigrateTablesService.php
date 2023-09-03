@@ -72,7 +72,7 @@ class MigrateTablesService
         DatabaseService::setDb($databaseName);
     }
 
-    public function run(): void
+    public function run(): bool
     {
         $this->setDestBlogInfo();
         $this->switchToDatabase($this->sourceDatabase);
@@ -88,10 +88,10 @@ class MigrateTablesService
             }
         });
 
-        $this->migrate();
+        return $this->migrate();
     }
 
-    public function migrate()
+    public function migrate(): bool
     {
         $this->blogTables->each(function ($tableName) {
             $this->buildCreateStatements($tableName)
@@ -107,6 +107,7 @@ class MigrateTablesService
             ->insertData()
             ->insertBlogRecord();
 
+        return true;
     }
 
     protected function setDestBlogInfo()
@@ -263,7 +264,6 @@ class MigrateTablesService
         $this->switchToDatabase($this->destDatabase);
         DB::insert($insertStub, $values);
 
-        echo $this->sourceBlogId . ' Done!' . PHP_EOL;
     }
 
     protected function buildInsertStatement($data, string $tableName): string

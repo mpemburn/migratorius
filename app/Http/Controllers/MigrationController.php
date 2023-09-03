@@ -37,12 +37,14 @@ class MigrationController extends Controller
     {
         $databaseFrom = request('databaseFrom');
         $databaseTo = request('databaseTo');
-        $fromValues = request('from');
+        $from = request('from');
 
-        $results = null;
-        if ($databaseFrom && $databaseTo && $fromValues) {
-            $blogIds = explode(',', $fromValues);
-            $results = $service->migrateMultiple($databaseFrom, $databaseTo, $blogIds);
+        $results = false;
+        if ($databaseFrom && $databaseTo && $from) {
+            $results = $service->setBlogToMigrate($from)
+                ->setSourceDatabase($databaseFrom)
+                ->setDestDatabase($databaseTo)
+                ->run();
         }
 
         return response()->json(['results' => $results]);

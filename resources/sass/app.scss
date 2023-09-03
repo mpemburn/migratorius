@@ -6,3 +6,31 @@
 
 // Bootstrap
 @import 'bootstrap/scss/bootstrap';
+#error {
+    font-size: 10pt;
+    color: red;
+}
+
+div.content {
+    top: 4.5rem;
+    margin: 2rem;
+}
+
+#subsites_to,
+#subsites_from {
+    min-width: 100%;
+}
+
+option {
+    color: #000;
+}
+
+input[type=search] {
+    min-height: 5vh;
+    margin: 0 3px;
+    outline-offset: 0;
+}
+select {
+    min-height: 5vh;
+    margin-left: 3px;
+}

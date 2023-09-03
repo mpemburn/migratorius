@@ -15,7 +15,7 @@
                     @endif
 
                     {{ __('You are logged in!') }}
-                    <example-component></example-component>
+                    <migrator></migrator>
                 </div>
             </div>
         </div>

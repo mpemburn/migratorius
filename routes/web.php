@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\MigrationController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,4 +22,7 @@ Route::get('/', function () {
 
 Auth::routes();
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/home', [HomeController::class, 'index'])->name('home');
+Route::get('/migrator', [MigrationController::class, 'index'])->name('migrator');
+Route::get('/subsites', 'App\Http\Controllers\MigrationController@getSubsites')->name('subsites');
+Route::post('/do_migration', 'App\Http\Controllers\MigrationController@migration')->name('migration');

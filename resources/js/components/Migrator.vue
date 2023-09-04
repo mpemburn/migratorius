@@ -12,10 +12,10 @@
                 </select>
                 <input type="search" @keyup="filterSubsites" @search="filterSubsites" placeholder="Filter selection"/>
                 <button @click="migrate" class="btn btn-primary btn-sm" :disabled=isButtonDisabled>Migrate</button>
-                <img id="loading" v-show="isLoading"
+                <img ref="loading" v-show="isLoading"
                      src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
                      height="24">
-                <div id="error_msg" class="text-danger"></div>
+                <div ref="message" v-show="showMessage" class="text-danger">Yo</div>
                 <div class="mt-2">
                     <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=isFromListDisabled>
                         <option v-for="subsites in subsitesFrom" :value="subsites.blogId">
@@ -62,7 +62,8 @@ export default {
             selected: [],
             disableFromList: false,
             disableButton: true,
-            isLoading: false
+            isLoading: false,
+            showMessage: false
         }
     },
     computed: {
@@ -170,6 +171,10 @@ export default {
 
             return '';
         },
+        setMessage(text) {
+            this.$refs.message.innerHTML = text;
+            this.showMessage = true;
+        },
         migrate() {
             let query = [
                 'databaseFrom=' + this.fromDatabase,
@@ -178,6 +183,7 @@ export default {
             ].join('&');
 
             if (this.selected.length === 0) {
+                this.showMessage = false;
                 return;
             }
             this.isLoading = true;
@@ -188,7 +194,7 @@ export default {
             // Grab the first item in the selected list
             let subsiteId = this.selected.shift();
             let processing = this.getSubsiteById(this.fromData, subsiteId);
-            console.log('Processing: ' + processing);
+            this.setMessage('Processing: ' + processing);
 
             axios.post("/do_migration?" + query + subsiteId)
                 .then(response => {
@@ -210,7 +216,7 @@ export default {
         }
     },
     mounted() {
-        console.log(this.$refs.fromList);
+        console.log(this.$refs);
     }
 }
 </script>

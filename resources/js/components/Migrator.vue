@@ -17,7 +17,7 @@
                      height="24">
                 <div ref="message" v-show="showMessage" class="text-danger"></div>
                 <div class="mt-2">
-                    <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=isFromListDisabled>
+                    <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=toSubsitesDisabled>
                         <option v-if="subsitesFrom.length > 0" v-for="subsites in subsitesFrom" :value="subsites.blogId">
                             [{{ subsites.blogId }}] {{ subsites.siteurl}}
                         </option>
@@ -36,8 +36,13 @@
                         {{ database.label}}
                     </option>
                 </select>
+                <span v-if="readyToUndo">
+                <button @click="rollback" class="btn btn-primary btn-sm">Submit</button>
+                <button @click="cancelUndo" class="btn btn-primary btn-sm">Cancel</button>
+                </span>
+                <button @click="undo" v-else class="btn btn-primary btn-sm">Undo</button>
                 <div class="mt-2">
-                    <select class="border" ref="toList" id="subsites_to" size="20" multiple disabled>
+                    <select class="border" ref="toList" id="subsites_to" size="20" multiple :disabled=toSubsitesDisabled>
                         <option v-if="subsitesTo.length > 0" v-for="subsites in subsitesTo" :value="subsites.blogId">
                             [{{ subsites.blogId }}] {{ subsites.siteurl}}
                         </option>
@@ -71,9 +76,11 @@ export default {
             selected: [],
             disableFromList: false,
             disableButton: true,
+            toSubsitesDisabled: true,
             isLoading: false,
             completed: false,
             showMessage: false,
+            readyToUndo: false,
         }
     },
     computed: {
@@ -239,7 +246,15 @@ export default {
                     console.log(response);
                     this.isLoading = false;
                 });
-
+        },
+        undo() {
+            this.readyToUndo = true;
+            this.toSubsitesDisabled = false;
+        },
+        cancelUndo() {
+            this.readyToUndo = false;
+            this.toSubsitesDisabled = true;
+            this.$refs.toList.value = null;
         }
     },
     mounted() {

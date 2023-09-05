@@ -29,11 +29,15 @@ option {
 }
 
 input[type=search] {
-    min-height: 3vh;
-    margin: 0 3px;
+    min-height: 1.8rem;
     outline-offset: 0;
 }
 select {
-    min-height: 2.9vh;
+    min-height: 1.8rem;
+    margin-left: 3px;
+}
+button.btn-sm {
+    position: relative;
+    top: -2px;
     margin-left: 3px;
 }

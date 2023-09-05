@@ -16,13 +16,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
 Auth::routes();
 
-Route::get('/home', [HomeController::class, 'index'])->name('home');
+Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/migrator', [MigrationController::class, 'index'])->name('migrator');
 Route::get('/subsites', 'App\Http\Controllers\MigrationController@getSubsites')->name('subsites');
 Route::post('/do_migration', 'App\Http\Controllers\MigrationController@migration')->name('migration');

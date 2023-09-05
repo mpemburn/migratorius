@@ -15,11 +15,14 @@
                 <img ref="loading" v-show="isLoading"
                      src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
                      height="24">
-                <div ref="message" v-show="showMessage" class="text-danger">Yo</div>
+                <div ref="message" v-show="showMessage" class="text-danger"></div>
                 <div class="mt-2">
                     <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=isFromListDisabled>
-                        <option v-for="subsites in subsitesFrom" :value="subsites.blogId">
+                        <option v-if="subsitesFrom.length > 0" v-for="subsites in subsitesFrom" :value="subsites.blogId">
                             [{{ subsites.blogId }}] {{ subsites.siteurl}}
+                        </option>
+                        <option v-else v-show="fromRetrieved">
+                            No subsites found
                         </option>
                     </select>
                 </div>
@@ -35,8 +38,11 @@
                 </select>
                 <div class="mt-2">
                     <select class="border" ref="toList" id="subsites_to" size="20" multiple disabled>
-                        <option v-for="subsites in subsitesTo" :value="subsites.blogId">
-                            [{{ subsites.blogId }}] {{ subsites.siteurl }}
+                        <option v-if="subsitesTo.length > 0" v-for="subsites in subsitesTo" :value="subsites.blogId">
+                            [{{ subsites.blogId }}] {{ subsites.siteurl}}
+                        </option>
+                        <option v-else v-show="toRetrieved">
+                            No subsites found
                         </option>
                     </select>
                 </div>
@@ -58,12 +64,16 @@ export default {
             fromData: [],
             toData: [],
             subsitesFrom: [],
+            subsitesTo: [],
+            fromRetrieved: false,
+            toRetrieved: false,
             currentUrl: '',
             selected: [],
             disableFromList: false,
             disableButton: true,
             isLoading: false,
-            showMessage: false
+            completed: false,
+            showMessage: false,
         }
     },
     computed: {
@@ -88,21 +98,31 @@ export default {
 
                 return;
             }
+            this.isLoading = true;
+            this.showMessage = false;
             axios.get("/subsites?database=" + dbName)
                 .then(response => {
                     let data = response.data;
-                    if (data.subsites) {
-                        if (direction === 'from') {
-                            self.fromDatabase = dbName
-                            self.fromData = data.subsites;
-                            self.currentUrl = data.currentUrl;
-                        } else {
-                            self.toDatabase = dbName
-                            self.toData = data.subsites;
-                        }
-                        self.fillSelects();
-                        // self.filter.keyup();
+                    let hasData = (data.subsites.length === 0)
+
+                    this.isLoading = false;
+
+                    if (direction === 'from') {
+                        self.fromRetrieved = hasData;
+                        self.fromDatabase = dbName
+                        self.fromData = data.subsites;
+                        self.currentUrl = data.currentUrl;
+                    } else {
+                        self.toRetrieved = hasData;
+                        self.toDatabase = dbName
+                        self.toData = data.subsites;
                     }
+                    if (self.fromDatabase === self.toDatabase) {
+                        self.setMessage('From and To databases cannot be the same.');
+                    }
+
+                    self.fillSelects();
+                    // self.filter.keyup();
                 });
         },
         clearData(direction) {
@@ -139,19 +159,18 @@ export default {
         filterSubsites(event) {
             let search = event.target.value;
             let baseUrl = 'https://' + this.currentUrl;
+            let results = [];
             // Restore all in case there's no match
             this.subsitesFrom = [...this.fromData];
             if (search) {
+                this.$refs.fromList.value = null;
                 this.subsitesFrom.forEach(option => {
-                    let index = this.subsitesFrom.findIndex((from) => {
-                        let test = from.siteurl.replace(baseUrl, '');
-                        return (test.indexOf(search) === -1);
-                    });
-                    // Remove item from array
-                    if (index !== -1) {
-                        this.subsitesFrom.splice(index, 1);
+                    let test = option.siteurl.replace(baseUrl, '');
+                    if (test.indexOf(search) !== -1) {
+                        results.push(option);
                     }
                 });
+                this.subsitesFrom = results;
             }
         },
         subsitesSelected(event) {
@@ -161,6 +180,7 @@ export default {
                     this.selected.push(option.value);
                 }
             }
+            this.showMessage = (this.selected.length === 0);
         },
         getSubsiteById(subsites, id) {
             for (let subsite of subsites) {
@@ -182,10 +202,16 @@ export default {
                 '&from='
             ].join('&');
 
-            if (this.selected.length === 0) {
+            if (this.completed) {
                 this.showMessage = false;
                 return;
             }
+
+            if (this.selected.length === 0) {
+                this.setMessage('You must select at least one subsite.');
+                return;
+            }
+
             this.isLoading = true;
             // Clear selections and disable fromList
             this.$refs.fromList.value = null;
@@ -194,7 +220,7 @@ export default {
             // Grab the first item in the selected list
             let subsiteId = this.selected.shift();
             let processing = this.getSubsiteById(this.fromData, subsiteId);
-            this.setMessage('Processing: ' + processing);
+            this.setMessage('Processing: ' + processing + '...');
 
             axios.post("/do_migration?" + query + subsiteId)
                 .then(response => {
@@ -205,6 +231,7 @@ export default {
                         this.isLoading = false;
                         this.disableFromList = false;
                         this.retrieveSubsites(this.toDatabase, 'to');
+                        this.completed = (this.selected.length === 0);
                         this.migrate();
                     }
                 })

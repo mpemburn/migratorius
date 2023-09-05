@@ -42,8 +42,12 @@ class SubsiteService
     public function getActiveBlogsForSelect(): array
     {
         return $this->getActiveBlogs()->map(function ($blog) {
-            return ['blogId' => $blog['blog_id'], 'siteurl' => $blog['siteurl']];
-        })->toArray();
+            if (isset($blog['blog_id']) && isset($blog['siteurl'])) {
+                return ['blogId' => $blog['blog_id'], 'siteurl' => $blog['siteurl']];
+            }
+
+            return null;
+        })->filter()->toArray();
     }
 
     public function getBlogsById(array $blogIds, array $filter = [])

@@ -14,7 +14,7 @@ Install **Migratorius** locally with the following command:
 
 `git clone git@github.com:mpemburn/migratorius.git`
 
-Change to the `Migratorius` directory and run:
+Change to the `migratorius` directory and run:
 
 `composer install`
 
@@ -43,7 +43,7 @@ To begin, you will need to create a user account. Click on the "**Register**" li
 at the top right side of your browser page.
 
 ### Subsite Cloning
-In order to use this feature, you must have at least one WordPress database installed locally.
+In order to use this service, you must have at least one WordPress database installed locally.
 The database(s) need to be defined in your `.env` file as follows:
 
 `INSTALLED_DATABASES="Database 1:my_first_db,Database 2:my_second_db"`

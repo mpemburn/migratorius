@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 
 class SubsiteService
 {
+
     public function setDatabase(?string $database): self
     {
         if ($database) {
@@ -65,9 +66,17 @@ class SubsiteService
         });
 
         return $rows;
-
     }
 
+    public function getBlogUrlById(string $database, int $blogId): string
+    {
+        DatabaseService::setDb($database);
+        $blogs = $this->getBlogsById([$blogId]);
+        $url = $blogs->first()['siteurl'];
+        DatabaseService::setDb(env('DB_DATABASE'));
+
+        return $url;
+    }
 
     protected function getBlogData(Blog $blog, array $filter): ?array
     {
@@ -94,7 +103,4 @@ class SubsiteService
 
         return $data;
     }
-
-
-
 }

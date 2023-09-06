@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\DynamicModel;
+use App\Models\DbMigration;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class MigrateTablesService
 {
@@ -22,6 +24,7 @@ class MigrateTablesService
     protected Collection $createTableStatements;
     protected Collection $dropTableStatements;
     protected Collection $inserts;
+    protected DbMigration $migrationRecord;
 
     public function __construct()
     {
@@ -72,10 +75,24 @@ class MigrateTablesService
         DatabaseService::setDb($databaseName);
     }
 
+    protected function createRecord(): void
+    {
+        $this->switchToDatabase(env('DB_DATABASE'));
+        $this->migrationRecord = DbMigration::create([
+            'sourceDatabase' => $this->sourceDatabase,
+            'destDatabase' => $this->destDatabase,
+            'subsiteUrl' => (new SubsiteService())->getBlogUrlById($this->sourceDatabase, $this->sourceBlogId),
+            'sourceSubsiteId' => $this->sourceBlogId,
+            'destSubsiteId' => $this->destBlogId,
+        ]);
+    }
     public function run(): bool
     {
         $this->setDestBlogInfo();
+        $this->createRecord();
+
         $this->switchToDatabase($this->sourceDatabase);
+
         $dbName = $this->sourceDatabase;
         $tables = DB::select('SHOW TABLES');
 
@@ -107,7 +124,8 @@ class MigrateTablesService
             ->insertData()
             ->insertBlogRecord();
 
-        return true;
+        $this->switchToDatabase(env('DB_DATABASE'));
+        return $this->migrationRecord->update(['created' => true]);
     }
 
     protected function setDestBlogInfo()

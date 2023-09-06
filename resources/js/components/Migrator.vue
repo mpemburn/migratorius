@@ -12,12 +12,12 @@
                 </select>
                 <input type="search" @keyup="filterSubsites" @search="filterSubsites" placeholder="Filter selection"/>
                 <button @click="migrate" class="btn btn-primary btn-sm" :disabled=isButtonDisabled>Migrate</button>
-                <img ref="loading" v-show="isLoading"
+                <img ref="loading" class="loading" v-show="isFromLoading"
                      src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
                      height="24">
                 <div ref="message" v-show="showMessage" class="text-danger"></div>
                 <div class="mt-2">
-                    <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=toSubsitesDisabled>
+                    <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=fromSubsitesDisabled>
                         <option v-if="subsitesFrom.length > 0" v-for="subsites in subsitesFrom" :value="subsites.blogId">
                             [{{ subsites.blogId }}] {{ subsites.siteurl}}
                         </option>
@@ -41,6 +41,9 @@
                 <button @click="cancelUndo" class="btn btn-primary btn-sm">Cancel</button>
                 </span>
                 <button @click="undo" v-else class="btn btn-primary btn-sm">Undo</button>
+                <img ref="loading" class="loading" v-show="isToLoading"
+                     src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
+                     height="24">
                 <div class="mt-2">
                     <select class="border" ref="toList" id="subsites_to" size="20" multiple :disabled=toSubsitesDisabled>
                         <option v-if="subsitesTo.length > 0" v-for="subsites in subsitesTo" :value="subsites.blogId">
@@ -74,10 +77,11 @@ export default {
             toRetrieved: false,
             currentUrl: '',
             selected: [],
-            disableFromList: false,
+            fromSubsitesDisabled: false,
             disableButton: true,
             toSubsitesDisabled: true,
-            isLoading: false,
+            isFromLoading: false,
+            isToLoading: false,
             completed: false,
             showMessage: false,
             readyToUndo: false,
@@ -88,9 +92,6 @@ export default {
             // evaluate whatever you need to determine disabled here...
             return this.disableButton;
         },
-        isFromListDisabled() {
-            return this.disableFromList;
-        }
     },
     methods: {
         selectDatabase(event) {
@@ -105,21 +106,23 @@ export default {
 
                 return;
             }
-            this.isLoading = true;
+            this.isFromLoading = (direction === 'from');
+            this.isToLoading = (direction === 'to');
+            console.log(this.isToLoading)
             this.showMessage = false;
             axios.get("/subsites?database=" + dbName)
                 .then(response => {
                     let data = response.data;
                     let hasData = (data.subsites.length === 0)
 
-                    this.isLoading = false;
-
                     if (direction === 'from') {
+                        self.isFromLoading = false;
                         self.fromRetrieved = hasData;
                         self.fromDatabase = dbName
                         self.fromData = data.subsites;
                         self.currentUrl = data.currentUrl;
                     } else {
+                        self.isToLoading  = false;
                         self.toRetrieved = hasData;
                         self.toDatabase = dbName
                         self.toData = data.subsites;
@@ -210,6 +213,7 @@ export default {
             ].join('&');
 
             if (this.completed) {
+                this.completed = false;
                 this.showMessage = false;
                 return;
             }
@@ -219,7 +223,7 @@ export default {
                 return;
             }
 
-            this.isLoading = true;
+            this.isFromLoading = true;
             // Clear selections and disable fromList
             this.$refs.fromList.value = null;
             this.disableFromList = true;
@@ -235,7 +239,7 @@ export default {
                     console.log(data);
                     if (data.results) {
                         console.log('Ready for the next one...');
-                        this.isLoading = false;
+                        this.isFromLoading = false;
                         this.disableFromList = false;
                         this.retrieveSubsites(this.toDatabase, 'to');
                         this.completed = (this.selected.length === 0);
@@ -244,7 +248,7 @@ export default {
                 })
                 .catch(response => {
                     console.log(response);
-                    this.isLoading = false;
+                    this.isFromLoading = false;
                 });
         },
         undo() {

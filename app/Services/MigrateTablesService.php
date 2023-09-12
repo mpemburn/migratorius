@@ -77,11 +77,15 @@ class MigrateTablesService
 
     protected function createRecord(): void
     {
+        $service = new SubsiteService();
+        $sourceSiteurl = $service->getBlogUrlById($this->sourceDatabase, $this->sourceBlogId);
+        $siteurl = $service->swapUrl($sourceSiteurl, $this->sourceDatabase, $this->destDatabase);
+
         $this->switchToDatabase(env('DB_DATABASE'));
         $this->migrationRecord = DbMigration::create([
             'sourceDatabase' => $this->sourceDatabase,
             'destDatabase' => $this->destDatabase,
-            'subsiteUrl' => (new SubsiteService())->getBlogUrlById($this->sourceDatabase, $this->sourceBlogId),
+            'subsiteUrl' => $siteurl,
             'sourceSubsiteId' => $this->sourceBlogId,
             'destSubsiteId' => $this->destBlogId,
         ]);
@@ -128,6 +132,13 @@ class MigrateTablesService
         return $this->migrationRecord->update(['created' => true]);
     }
 
+    public function remove(string $database, int $subsiteId)
+    {
+        $this->dropTables($database)
+            ->removeBlogsTableEntry($database);
+
+    }
+
     protected function setDestBlogInfo()
     {
         $this->switchToDatabase($this->destDatabase);
@@ -155,9 +166,11 @@ class MigrateTablesService
         return $this;
     }
 
-    protected function dropTables(): self
+    protected function dropTables(?string $database = null): self
     {
-        $this->switchToDatabase($this->destDatabase);
+        $database = $database ?: $this->destDatabase;
+
+        $this->switchToDatabase($database);
 
         $this->dropTableStatements->each(function ($statement) {
             $sql = current($statement);
@@ -167,8 +180,10 @@ class MigrateTablesService
         return $this;
     }
 
-    protected function removeBlogsTableEntry(): self
+    protected function removeBlogsTableEntry(?string $database = null): self
     {
+        $database = $database ?: $this->destDatabase;
+
         $this->switchToDatabase($this->destDatabase);
 
         $blogsTable = $this->prefix . 'blogs';

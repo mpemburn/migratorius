@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MigrationController;
+use App\Models\DbMigration;
 use App\Services\SubsiteService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -17,8 +18,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/dev', function () {
-    $m = \App\Models\DbMigration::find(3);
-    $m->update(['created' => true]);
     // Do what thou wilt
 });
 
@@ -29,4 +28,6 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index'])->name('home');
 Route::get('/migrator', [MigrationController::class, 'index'])->name('migrator');
 Route::get('/subsites', 'App\Http\Controllers\MigrationController@getSubsites')->name('subsites');
+Route::get('/undoable', 'App\Http\Controllers\MigrationController@getUndoableSubsites')->name('undoable');
 Route::post('/do_migration', 'App\Http\Controllers\MigrationController@migration')->name('migration');
+Route::post('/remove', 'App\Http\Controllers\MigrationController@removeSubsite')->name('remove');

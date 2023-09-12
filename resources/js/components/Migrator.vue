@@ -37,15 +37,15 @@
                     </option>
                 </select>
                 <span v-if="readyToUndo">
-                <button @click="rollback" class="btn btn-primary btn-sm">Submit</button>
+                <button @click="removeSubsites" class="btn btn-primary btn-sm">Submit</button>
                 <button @click="cancelUndo" class="btn btn-primary btn-sm">Cancel</button>
                 </span>
-                <button @click="undo" v-else class="btn btn-primary btn-sm">Undo</button>
+                <button @click="retrieveUndoables" v-else class="btn btn-primary btn-sm">Undo</button>
                 <img ref="loading" class="loading" v-show="isToLoading"
                      src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
                      height="24">
                 <div class="mt-2">
-                    <select class="border" ref="toList" id="subsites_to" size="20" multiple :disabled=toSubsitesDisabled>
+                    <select class="border" ref="toList" id="subsites_to" @change="toRemoveelected" size="20" multiple :disabled=toSubsitesDisabled>
                         <option v-if="subsitesTo.length > 0" v-for="subsites in subsitesTo" :value="subsites.blogId">
                             [{{ subsites.blogId }}] {{ subsites.siteurl}}
                         </option>
@@ -77,6 +77,7 @@ export default {
             toRetrieved: false,
             currentUrl: '',
             selected: [],
+            toRemove: [],
             fromSubsitesDisabled: false,
             disableButton: true,
             toSubsitesDisabled: true,
@@ -108,7 +109,6 @@ export default {
             }
             this.isFromLoading = (direction === 'from');
             this.isToLoading = (direction === 'to');
-            console.log(this.isToLoading)
             this.showMessage = false;
             axios.get("/subsites?database=" + dbName)
                 .then(response => {
@@ -184,13 +184,20 @@ export default {
             }
         },
         subsitesSelected(event) {
-            this.selected = [];
-            for (let option of event.target.options) {
+            this.selected = this.gatherSelected(event.target.options);
+            this.showMessage = (this.selected.length === 0);
+        },
+        toRemoveelected(event) {
+            this.toRemove = this.gatherSelected(event.target.options)
+        },
+        gatherSelected(options) {
+            let container = [];
+            for (let option of options) {
                 if (option.selected) {
-                    this.selected.push(option.value);
+                    container.push(option.value);
                 }
             }
-            this.showMessage = (this.selected.length === 0);
+            return container;
         },
         getSubsiteById(subsites, id) {
             for (let subsite of subsites) {
@@ -251,14 +258,50 @@ export default {
                     this.isFromLoading = false;
                 });
         },
-        undo() {
+        retrieveUndoables() {
+            let self = this;
             this.readyToUndo = true;
             this.toSubsitesDisabled = false;
+            axios.get("/undoable?database_to=" + this.toDatabase)
+                .then(response => {
+                    console.log(response.data);
+                    self.subsitesTo = response.data.subsites;
+                });
+
         },
         cancelUndo() {
             this.readyToUndo = false;
             this.toSubsitesDisabled = true;
             this.$refs.toList.value = null;
+            this.subsitesTo = this.toData;
+        },
+        removeSubsites() {
+            if (this.completed) {
+                this.completed = false;
+                return;
+            }
+
+            let subsiteId = this.toRemove.shift();
+            this.isToLoading = true;
+
+            axios.post("/remove?database_to=" + this.toDatabase + '&subsite_id=' + subsiteId)
+                .then(response => {
+                    let data = response.data;
+                    console.log(data);
+                    if (data.success) {
+                        console.log('Ready for the next removal...');
+                        this.isToLoading = false;
+                        //this.disableToList = false;
+                        this.retrieveUndoables();
+                        this.completed = (this.toRemove.length === 0);
+                        this.removeSubsites();
+                    }
+                })
+                .catch(response => {
+                    console.log(response);
+                    this.isFromLoading = false;
+                });
+
         }
     },
     mounted() {

@@ -78,6 +78,13 @@ class SubsiteService
         return $url;
     }
 
+    public function swapUrl(string $originalUrl, string $fromDatabase, string $toDatabase): string
+    {
+        $databases = DatabaseService::getInverseDatabaseList();
+
+        return str_replace($databases[$fromDatabase], $databases[$toDatabase], $originalUrl);
+    }
+
     protected function getBlogData(Blog $blog, array $filter): ?array
     {
         if ($blog->blog_id < 2) {

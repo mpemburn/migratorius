@@ -97,17 +97,7 @@ class MigrateTablesService
 
         $this->switchToDatabase($this->sourceDatabase);
 
-        $dbName = $this->sourceDatabase;
-        $tables = DB::select('SHOW TABLES');
-
-        collect($tables)->each(function ($table) use ($dbName) {
-            $prop = 'Tables_in_' . $dbName;
-            if (stripos($table->$prop, $this->prefix . $this->sourceBlogId . '_') !== false) {
-                // Add table names to collection
-//                echo $table->$prop . PHP_EOL;
-                $this->blogTables->push($table->$prop);
-            }
-        });
+        $this->buildTables($this->sourceDatabase, $this->sourceBlogId);
 
         return $this->migrate();
     }
@@ -132,11 +122,41 @@ class MigrateTablesService
         return $this->migrationRecord->update(['created' => true]);
     }
 
-    public function remove(string $database, int $subsiteId)
+    public function remove(string $dbName, string $blogId)
     {
-        $this->dropTables($database)
-            ->removeBlogsTableEntry($database);
+        $this->switchToDatabase($dbName);
 
+        $this->destBlogId = $blogId;
+        $this->setDestDatabase($dbName)
+            ->buildTables($dbName, $blogId)
+            ->dropTables()
+            ->removeBlogsTableEntry();
+
+        $this->switchToDatabase(env('DB_DATABASE'));
+        $dbMigration = DbMigration::where('destDatabase', $dbName)
+            ->where('destSubsiteId', $blogId)
+            ->first();
+        $dbMigration->update(['created' => 0]);
+
+    }
+
+    public function buildTables(string $dbName, string $blogId): self
+    {
+        $tables = DB::select('SHOW TABLES');
+
+        collect($tables)->each(function ($table) use ($blogId, $dbName) {
+            $prop = 'Tables_in_' . $dbName;
+            if (stripos($table->$prop, $this->prefix . $blogId . '_') !== false) {
+                $tableName = $table->$prop;
+                // Add table names to collection
+                $this->blogTables->push($tableName);
+                // Create DROP statements for rollback
+                $dropStatement = "DROP TABLE IF EXISTS {$tableName};";
+                $this->dropTableStatements->push([$tableName => $dropStatement]);
+            }
+        });
+
+        return $this;
     }
 
     protected function setDestBlogInfo()
@@ -166,11 +186,9 @@ class MigrateTablesService
         return $this;
     }
 
-    protected function dropTables(?string $database = null): self
+    protected function dropTables(): self
     {
-        $database = $database ?: $this->destDatabase;
-
-        $this->switchToDatabase($database);
+        $this->switchToDatabase($this->destDatabase);
 
         $this->dropTableStatements->each(function ($statement) {
             $sql = current($statement);
@@ -180,10 +198,8 @@ class MigrateTablesService
         return $this;
     }
 
-    protected function removeBlogsTableEntry(?string $database = null): self
+    protected function removeBlogsTableEntry(): self
     {
-        $database = $database ?: $this->destDatabase;
-
         $this->switchToDatabase($this->destDatabase);
 
         $blogsTable = $this->prefix . 'blogs';
@@ -228,10 +244,6 @@ class MigrateTablesService
         );
 
         $this->createTableStatements->push([$destTableName => $createStatement]);
-
-        $dropStatement = "DROP TABLE IF EXISTS {$destTableName};";
-
-        $this->dropTableStatements->push([$destTableName => $dropStatement]);
 
         return $this;
     }

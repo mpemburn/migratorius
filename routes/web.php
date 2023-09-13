@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 Route::get('/dev', function () {
+    $service = new \App\Services\MigrateTablesService();
+    \App\Services\DatabaseService::setDb('sites_clarku');
+    $service->buildTables('sites_clarku', 32);
     // Do what thou wilt
 });
 

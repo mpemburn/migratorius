@@ -73,6 +73,12 @@ class MigrationController extends Controller
         $destDatabase = request('database_to');
         $subsitedId = request('subsite_id');
 
+        if (! $destDatabase && ! $subsitedId) {
+            return response()->json(['success' => false]);
+        }
+
+        $service->remove($destDatabase, $subsitedId);
+
         return response()->json(['success' => true]);
     }
 }

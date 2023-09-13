@@ -15,7 +15,7 @@
                 <img ref="loading" class="loading" v-show="isFromLoading"
                      src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
                      height="24">
-                <div ref="message" v-show="showMessage" class="text-danger"></div>
+                <div ref="fromMessage" v-show="showFromMessage" class="text-danger"></div>
                 <div class="mt-2">
                     <select class="border" ref="fromList" id="subsites_from" @change="subsitesSelected" size="20" multiple :disabled=fromSubsitesDisabled>
                         <option v-if="subsitesFrom.length > 0" v-for="subsites in subsitesFrom" :value="subsites.blogId">
@@ -44,6 +44,7 @@
                 <img ref="loading" class="loading" v-show="isToLoading"
                      src="https://cdnjs.cloudflare.com/ajax/libs/galleriffic/2.0.1/css/loader.gif" alt="" width="24"
                      height="24">
+                <div ref="toMessage" v-show="showToMessage" class="text-danger"></div>
                 <div class="mt-2">
                     <select class="border" ref="toList" id="subsites_to" @change="toRemoveelected" size="20" multiple :disabled=toSubsitesDisabled>
                         <option v-if="subsitesTo.length > 0" v-for="subsites in subsitesTo" :value="subsites.blogId">
@@ -84,7 +85,8 @@ export default {
             isFromLoading: false,
             isToLoading: false,
             completed: false,
-            showMessage: false,
+            showFromMessage: false,
+            showToMessage: false,
             readyToUndo: false,
         }
     },
@@ -109,7 +111,7 @@ export default {
             }
             this.isFromLoading = (direction === 'from');
             this.isToLoading = (direction === 'to');
-            this.showMessage = false;
+            this.showFromMessage = false;
             axios.get("/subsites?database=" + dbName)
                 .then(response => {
                     let data = response.data;
@@ -185,7 +187,7 @@ export default {
         },
         subsitesSelected(event) {
             this.selected = this.gatherSelected(event.target.options);
-            this.showMessage = (this.selected.length === 0);
+            this.showFromMessage = (this.selected.length === 0);
         },
         toRemoveelected(event) {
             this.toRemove = this.gatherSelected(event.target.options)
@@ -208,9 +210,14 @@ export default {
 
             return '';
         },
-        setMessage(text) {
-            this.$refs.message.innerHTML = text;
-            this.showMessage = true;
+        setMessage(text, direction = 'from') {
+            if (direction === 'from') {
+                this.$refs.fromMessage.innerHTML = text;
+                this.showFromMessage = true;
+            } else {
+                this.$refs.toMessage.innerHTML = text;
+                this.showToMessage = true;
+            }
         },
         migrate() {
             let query = [
@@ -221,7 +228,7 @@ export default {
 
             if (this.completed) {
                 this.completed = false;
-                this.showMessage = false;
+                this.showFromMessage = false;
                 return;
             }
 
@@ -277,14 +284,17 @@ export default {
         },
         removeSubsites() {
             if (this.completed) {
+                this.showToMessage = false;
                 this.completed = false;
                 return;
             }
 
             let subsiteId = this.toRemove.shift();
             this.isToLoading = true;
+            let processing = this.getSubsiteById(this.toData, subsiteId);
+            this.setMessage('Removing: ' + processing + '...', 'to');
 
-            axios.post("/remove?database_to=" + this.toDatabase + '&subsite_id=' + subsiteId)
+            axios.post('/remove?database_to=' + this.toDatabase + '&subsite_id=' + subsiteId)
                 .then(response => {
                     let data = response.data;
                     console.log(data);
